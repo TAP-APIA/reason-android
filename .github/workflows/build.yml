@@ -2,23 +2,43 @@ name: Build APK
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v3
-      - run: chmod +x gradlew && ./gradlew assembleDebug assembleRelease --no-daemon
+      # The Android SDK is preinstalled on GitHub's Ubuntu runners (ANDROID_HOME).
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then VERSION="${GITHUB_REF_NAME#v}"; else VERSION="1.0.${GITHUB_RUN_NUMBER}"; fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon -PversionCode=${GITHUB_RUN_NUMBER} -PversionName=$VERSION
+          cp app/build/outputs/apk/release/app-release.apk reason-android-$VERSION.apk
       - uses: actions/upload-artifact@v4
         with:
           name: reason-android-apk
-          path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/app-release.apk
+          path: reason-android-*.apk
+      - name: Publish GitHub Release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" reason-android-$VERSION.apk --clobber
+          else
+            gh release create "$TAG" reason-android-$VERSION.apk --target "$GITHUB_SHA" \
+              --title "Reason Android $VERSION" \
+              --notes "下载 reason-android-$VERSION.apk 安装到安卓手机（Android 8.0+）。后续版本同一签名，可直接覆盖升级。"
+          fi

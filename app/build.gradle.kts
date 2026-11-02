@@ -11,19 +11,30 @@ android {
         applicationId = "com.reasonmachines.android"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        // CI passes -PversionCode/-PversionName so every release installs over the previous one.
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "1.0.0"
         buildConfigField("String", "START_URL", "\"https://reasonmachines.com/agents\"")
     }
 
     buildFeatures { buildConfig = true }
 
+    signingConfigs {
+        // Stable key committed to this private repo so every build (local or CI) has the same
+        // signature and new APKs install as updates. Override with env vars for a private key.
+        create("release") {
+            storeFile = file(System.getenv("REASON_KEYSTORE") ?: "reason.keystore")
+            storePassword = System.getenv("REASON_KEYSTORE_PASSWORD") ?: "reasonandroid"
+            keyAlias = System.getenv("REASON_KEY_ALIAS") ?: "reason"
+            keyPassword = System.getenv("REASON_KEY_PASSWORD") ?: "reasonandroid"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signed with the debug key unless a release keystore is configured, so the APK installs as-is.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
