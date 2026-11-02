@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the launcher icon: check for updates now, or set the GitHub token. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="check_update"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_check_update">
+        <intent
+            android:action="com.reasonmachines.android.CHECK_UPDATE"
+            android:targetPackage="com.reasonmachines.android"
+            android:targetClass="com.reasonmachines.android.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="update_settings"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_update_settings">
+        <intent
+            android:action="com.reasonmachines.android.UPDATE_SETTINGS"
+            android:targetPackage="com.reasonmachines.android"
+            android:targetClass="com.reasonmachines.android.MainActivity" />
+    </shortcut>
+</shortcuts>

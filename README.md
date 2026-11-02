@@ -13,6 +13,7 @@ Native Android app for [Reason](https://reasonmachines.com/agents). It runs the 
 - Deep links: opening a `reasonmachines.com` link offers to open it in the app
 - External links, `mailto:`, `tel:` and app intents open in the matching app
 - Back button navigates history; closes popups; double press to leave
+- Automatic updates from GitHub Releases: checks on launch (every 6 hours at most), shows release notes, downloads the APK and opens the system installer. Long-press the app icon for "检查更新" and "更新设置". Because this repository is private, the app asks once for a fine-grained GitHub token with read-only Contents access to this repository; it is stored encrypted on the phone, never in the APK
 - Follows system light/dark theme; offline page with retry; fullscreen video; pinch zoom
 
 ## Build
@@ -27,7 +28,7 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 
 The release build is signed with the debug key so it installs directly. For Play Store distribution configure your own signing key in `app/build.gradle.kts`.
 
-GitHub Actions builds both APKs on every push; download them from the run's artifacts.
+GitHub Actions builds the APK on every push; every push to `main` (or a `v*` tag) publishes a GitHub Release with `reason-android-<version>.apk`, which the in-app updater picks up.
 
 ## Install
 
