@@ -87,6 +87,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var bridge: BlobBridge
+    private lateinit var updater: Updater
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -123,10 +124,14 @@ class MainActivity : AppCompatActivity() {
         } else {
             webView.loadUrl(urlFromIntent(intent) ?: BuildConfig.START_URL)
         }
+
+        updater = Updater(this)
+        if (savedInstanceState == null && !updater.handleIntent(intent)) updater.autoCheck()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (updater.handleIntent(intent)) return
         urlFromIntent(intent)?.let {
             closePopup()
             webView.loadUrl(it)
@@ -141,6 +146,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         webView.onResume()
+        updater.onResume()
     }
 
     override fun onPause() {

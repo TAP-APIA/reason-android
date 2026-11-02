@@ -50,4 +50,6 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.1")
     implementation("androidx.webkit:webkit:1.11.0")
     implementation("androidx.browser:browser:1.8.0")
+    implementation("androidx.security:security-crypto:1.0.0")
+    testImplementation("junit:junit:4.13.2")
 }
