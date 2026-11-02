@@ -187,8 +187,27 @@ class MainActivity : AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            // Extra gap below the status bar so the page's floating header never touches or tucks under it.
+            val gap = (TOP_GAP_DP * v.resources.displayMetrics.density).toInt()
+            v.setPadding(bars.left, bars.top + gap, bars.right, maxOf(bars.bottom, ime.bottom))
             WindowInsetsCompat.CONSUMED
+        }
+    }
+
+    /** Paint the status bar area and top gap with the page's own background so they read as one surface. */
+    private fun matchBarsToPage(view: WebView) {
+        view.evaluateJavascript(
+            "(function(){var c=getComputedStyle(document.body).backgroundColor;" +
+                "if(!c||c==='rgba(0, 0, 0, 0)'||c==='transparent')c=getComputedStyle(document.documentElement).backgroundColor;return c;})()"
+        ) { raw ->
+            val m = Regex("rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)(?:,\\s*([\\d.]+))?\\)").find(raw ?: return@evaluateJavascript) ?: return@evaluateJavascript
+            val alpha = m.groupValues[4].toFloatOrNull() ?: 1f
+            if (alpha < 0.5f) return@evaluateJavascript
+            val (r, g, b) = m.destructured
+            val color = android.graphics.Color.rgb(r.toInt(), g.toInt(), b.toInt())
+            findViewById<View>(R.id.root).setBackgroundColor(color)
+            val light = (0.299 * r.toInt() + 0.587 * g.toInt() + 0.114 * b.toInt()) > 150
+            WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = light
         }
     }
 
@@ -287,6 +306,7 @@ class MainActivity : AppCompatActivity() {
         override fun onPageFinished(view: WebView, url: String?) {
             CookieManager.getInstance().flush()
             if (!isPopup) bridge.trustedPage = url?.let { Hosts.isReason(Uri.parse(it)) } ?: false
+            if (!isPopup) matchBarsToPage(view)
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -502,3 +522,5 @@ class MainActivity : AppCompatActivity() {
 
     fun needsNotificationRuntimePermission() = Build.VERSION.SDK_INT >= 33
 }
+
+private const val TOP_GAP_DP = 10
