@@ -15,6 +15,7 @@ import android.os.Message
 import android.provider.MediaStore
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
 import android.webkit.URLUtil
@@ -37,6 +38,7 @@ import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -177,24 +179,41 @@ class MainActivity : AppCompatActivity() {
     // ---------------------------------------------------------------------------------------
 
     /**
-     * Draw behind the system bars ourselves and pad the content by the status bar, navigation bar,
-     * display cutout and keyboard, so nothing on the page sits under the status bar on any Android
-     * version (including Android 15's enforced edge-to-edge).
+     * Full screen: hide the status bar (a swipe from the top shows it briefly) and let the page
+     * use the whole top of the screen, including the area around a camera cutout. The bottom is
+     * still padded by the navigation bar and keyboard so nothing hides behind them.
      */
     private fun applySystemBarInsets() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+        hideStatusBar()
         val root = findViewById<View>(R.id.root)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            // Extra gap below the status bar so the page's floating header never touches or tucks under it.
-            val gap = (TOP_GAP_DP * v.resources.displayMetrics.density).toInt()
-            v.setPadding(bars.left, bars.top + gap, bars.right, maxOf(bars.bottom, ime.bottom))
+            v.setPadding(nav.left, 0, nav.right, maxOf(nav.bottom, ime.bottom))
             WindowInsetsCompat.CONSUMED
         }
     }
 
-    /** Paint the status bar area and top gap with the page's own background so they read as one surface. */
+    private fun hideStatusBar() {
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.statusBars())
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Dialogs, the share sheet or the notification shade can bring the status bar back.
+        if (hasFocus) hideStatusBar()
+    }
+
+    /** Paint the area behind the navigation bar with the page's own background so it reads as one surface. */
     private fun matchBarsToPage(view: WebView) {
         view.evaluateJavascript(
             "(function(){var c=getComputedStyle(document.body).backgroundColor;" +
@@ -207,7 +226,10 @@ class MainActivity : AppCompatActivity() {
             val color = android.graphics.Color.rgb(r.toInt(), g.toInt(), b.toInt())
             findViewById<View>(R.id.root).setBackgroundColor(color)
             val light = (0.299 * r.toInt() + 0.587 * g.toInt() + 0.114 * b.toInt()) > 150
-            WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = light
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = light
+                isAppearanceLightNavigationBars = light
+            }
         }
     }
 
@@ -550,4 +572,3 @@ class MainActivity : AppCompatActivity() {
     fun needsNotificationRuntimePermission() = Build.VERSION.SDK_INT >= 33
 }
 
-private const val TOP_GAP_DP = 10
