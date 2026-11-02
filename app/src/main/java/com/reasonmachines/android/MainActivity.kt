@@ -472,7 +472,34 @@ class MainActivity : AppCompatActivity() {
             if (it.canGoBack()) it.goBack() else closePopup()
             return
         }
-        if (offline.visibility == View.VISIBLE) offline.visibility = View.GONE
+        if (offline.visibility == View.VISIBLE) {
+            offline.visibility = View.GONE
+            navigateBack()
+            return
+        }
+        // The site opens the remote computer, side panels and dialogs without a history entry, so
+        // close those first; otherwise back jumps to whatever chat was open before.
+        val onReason = webView.url?.let { Hosts.isReason(Uri.parse(it)) } ?: false
+        if (!onReason) {
+            navigateBack()
+            return
+        }
+        webView.evaluateJavascript(Scripts.BACK) { result ->
+            if (result?.contains("handled") != true) navigateBack()
+        }
+    }
+
+    fun showKeyboard() {
+        webView.requestFocus()
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        fun imeVisible() = ViewCompat.getRootWindowInsets(webView)?.isVisible(WindowInsetsCompat.Type.ime()) ?: false
+        // Chromium hands the focused field to the keyboard a moment after focus moves, and the keyboard
+        // ignores an implicit request, so ask explicitly once that has happened and once more if needed.
+        webView.postDelayed({ if (!imeVisible()) imm.showSoftInput(webView, 0) }, 60)
+        webView.postDelayed({ if (!imeVisible()) imm.showSoftInput(webView, 0) }, 350)
+    }
+
+    private fun navigateBack() {
         if (webView.canGoBack()) {
             webView.goBack()
             return
