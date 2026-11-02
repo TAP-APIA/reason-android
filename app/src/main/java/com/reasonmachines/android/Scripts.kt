@@ -11,6 +11,17 @@ object Scripts {
         (function () {
           if (window.__reasonAndroid) return;
           window.__reasonAndroid = true;
+          // Native-app feel: no blue tap highlight, and no focus ring on mouse/touch focus
+          // (keyboard focus via :focus-visible keeps its outline).
+          (function addStyle() {
+            var parent = document.head || document.documentElement;
+            if (!parent) { document.addEventListener('DOMContentLoaded', addStyle, { once: true }); return; }
+            var st = document.createElement('style');
+            st.id = '__reason-android-style';
+            st.textContent = '*,*::before,*::after{-webkit-tap-highlight-color:transparent!important}' +
+              ':focus:not(:focus-visible){outline:none!important}';
+            parent.appendChild(st);
+          })();
           var B = window.${BlobBridge.NAME};
           if (!B) return;
           var waiters = [];

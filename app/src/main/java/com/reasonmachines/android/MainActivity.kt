@@ -34,6 +34,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -93,6 +96,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        applySystemBarInsets()
         container = findViewById(R.id.webContainer)
         progress = findViewById(R.id.progress)
         offline = findViewById(R.id.offline)
@@ -172,9 +176,27 @@ class MainActivity : AppCompatActivity() {
     // WebView setup
     // ---------------------------------------------------------------------------------------
 
+    /**
+     * Draw behind the system bars ourselves and pad the content by the status bar, navigation bar,
+     * display cutout and keyboard, so nothing on the page sits under the status bar on any Android
+     * version (including Android 15's enforced edge-to-edge).
+     */
+    private fun applySystemBarInsets() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val root = findViewById<View>(R.id.root)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            WindowInsetsCompat.CONSUMED
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(isPopup: Boolean): WebView {
         val wv = WebView(this)
+        // No Android focus highlight around the WebView when it is tapped.
+        wv.defaultFocusHighlightEnabled = false
         wv.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         wv.setBackgroundColor(ContextCompat.getColor(this, R.color.bg))
         wv.settings.apply {
