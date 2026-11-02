@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Reason</string>
+    <string name="offline_title">无法连接到 Reason</string>
+    <string name="offline_body">请检查网络连接后重试。</string>
+    <string name="retry">重试</string>
+    <string name="download_started">开始下载：%1$s</string>
+    <string name="download_saved">已保存：%1$s</string>
+    <string name="press_back_again">再按一次返回键退出</string>
+    <string name="choose_file">选择文件</string>
+</resources>
