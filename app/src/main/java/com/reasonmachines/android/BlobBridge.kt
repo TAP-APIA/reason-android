@@ -51,6 +51,13 @@ class BlobBridge(private val activity: MainActivity) {
         activity.evaluateInMain("window.__reasonAndroidPermission && window.__reasonAndroidPermission('$state')")
     }
 
+    /** Raise the soft keyboard for the remote computer's hidden input when a tap focused it. */
+    @JavascriptInterface
+    fun showKeyboard() {
+        if (!trustedPage) return
+        activity.runOnUiThread { activity.showKeyboard() }
+    }
+
     @JavascriptInterface
     fun showNotification(title: String, body: String, tag: String, url: String) {
         if (!trustedPage) return
